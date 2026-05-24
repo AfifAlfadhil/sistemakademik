@@ -1,0 +1,10 @@
+langchain
+chromadb
+sentence-transformers
+streamlit
+pdfplumber
+ragas
+bert-score
+rouge-score
+python-dotenv
+google-generativeai
