@@ -1,1 +1,1 @@
-# sistemakademik
+Sistem Asisten Kampus UNS adalah chatbot akademik berbasis **Retrieval-Augmented Generation (RAG)** yang dirancang untuk membantu mahasiswa S1 Universitas Sebelas Maret (UNS) memperoleh informasi akademik berdasarkan dokumen resmi universitas. Sistem ini memanfaatkan **Large Language Model (LLM)**, **vector database**, **sentence embedding**, dan **prompt engineering** untuk menghasilkan jawaban yang faktual. Sistem menjawab pertanyaan terkait kalender akademik, KRS & herregistrasi, cuti akademik, UKT, skripsi/tugas Akhir, dan peraturan akademik S1 UNS.
