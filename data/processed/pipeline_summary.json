@@ -1,0 +1,27 @@
+{
+  "pipeline_run": {
+    "start_time": "2026-05-25T14:44:42.427021",
+    "end_time": "2026-05-25T14:45:10.944711",
+    "duration_seconds": 28.52,
+    "config": {
+      "chunk_max_size": 600,
+      "chunk_overlap": 100,
+      "pdf_dir": "data/raw",
+      "output_dir": "data/processed"
+    }
+  },
+  "documents": {
+    "total_processed": 2
+  },
+  "chunks": {
+    "total_chunks": 79,
+    "total_chars": 34343,
+    "average_chars": 435,
+    "with_numeric_data": 0,
+    "with_cross_reference": 0,
+    "avg_importance_score": 0.463
+  },
+  "content_categories": {
+    "lainnya": 79
+  }
+}
