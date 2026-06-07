@@ -1,10 +1,18 @@
-langchain
-chromadb
-sentence-transformers
-streamlit
-pdfplumber
-ragas
-bert-score
-rouge-score
-python-dotenv
-google-generativeai
+# fastapi>=0.115.0
+# uvicorn[standard]>=0.34.0
+# python-multipart>=0.0.18
+PyMuPDF>=1.24.0
+# pypdf>=5.0.0
+pytesseract>=0.3.13
+Pillow>=10.0.0
+opencv-python-headless>=4.9.0
+numpy>=1.26.0
+langchain-text-splitters>=0.3.0
+chromadb>=0.6.0
+google-genai>=1.0.0
+python-dotenv>=1.0.0
+pyyaml>=6.0
+# aiosqlite>=0.21.0
+# aiofiles>=24.0.0
+# tabulate>=0.9.0
+# pandas>=2.0.0
