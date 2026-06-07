@@ -64,8 +64,8 @@ Setelah basis pengetahuan (Vektor) terbentuk secara solid di atas, fase berikutn
 
 Seluruh **konfigurasi hyperparameter dan arsitektur library yang dibutuhkan untuk merajut fase ini sebenarnya sudah dirancang sedari awal** dan di-*comment out* di dalam file `config.yaml` dan `requirements.txt`. Kita hanya tinggal membuka tanda komentarnya dan mulai mengimplementasikan fondasi berikut:
 
-### 1. Sistem Retrieval Hibrida (`src/retrieval/`)
-Membangun algoritma pencarian mutakhir. Daripada sekadar mencocokkan kemiripan vektor (*Semantic Search*), sistem akan digabungkan dengan **BM25 Keyword Search** (Pencarian leksikal spesifik). Hasil dari keduanya akan digabungkan lewat metode **Reciprocal Rank Fusion (RRF)**. Konfigurasi jumlah pencarian (`retrieval: top_k: 5`) sudah disiapkan di `config.yaml`.
+### 1. Sistem Retrieval (`src/retrieval/`)
+Membangun algoritma pencarian berbasis kemiripan semantik. Sistem akan menggunakan **Semantic Search** dengan *Cosine Similarity* pada ChromaDB untuk mengambil konteks dokumen yang relevan terhadap pertanyaan pengguna. Parameter top K (`retrieval: top_k: 5`) akan diatur lewat `config.yaml`.
 
 ### 2. Generasi Jawaban LLM (`src/llm/`)
 Membangun modul generasi sintesis (*Generative Module*) yang bertugas "membaca" konteks dari hasil *Retrieval* dan merumuskan jawaban yang sangat alami menggunakan **Google Gemini 2.5 Flash**. 
@@ -76,6 +76,9 @@ Agar AI mengingat riwayat percakapan pengguna sebelumnya (berkemampuan *Follow-u
 - Parameter panjang memori obrolan (`history_window: 6`) sudah diplot di `config.yaml`, dan *library* `aiosqlite` sudah tercantum di *roadmap* `requirements.txt`.
 
 ### 4. REST API Backend & Server (`app.py`)
-Membangun gerbang utama (*Backend Server*) berskala *Production* agar otak AI ini bisa dikomunikasikan ke *web frontend*, UI interaktif, maupun *mobile app*.
-- **Teknologi Utama**: Menggunakan **FastAPI** dengan web-server **Uvicorn**, sanggup memproses *file upload* lewat `python-multipart`, dan menangani file I/O secara kilat dengan `aiofiles`. Semua spesifikasinya sengaja sudah direkam di `requirements.txt`.
-- **Fitur API**: Membangun *endpoint* khusus seperti `/chat` (untuk respons *streaming* secara instan ke layar pengguna bak ChatGPT), dan `/upload` (untuk menelan SK PDF baru dari pengguna tanpa harus lewat terminal).
+Membangun gerbang utama (*Backend Server*) berskala *Production* dengan **FastAPI** dan **Uvicorn**. Mendukung *asynchronous operations* via `aiofiles` dan `python-multipart`.
+- **Fitur API**: Endpoint lengkap mulai dari penambahan dokumen (`POST /api/upload`), pengambilan dokumen (`GET /api/documents`, `GET /api/documents/{doc_id}/logs`), interaksi tanya-jawab AI (`POST /api/chat`), hingga manajemen obrolan (`GET /api/conversations`). Server inilah yang nantinya dikonsumsi oleh *Frontend* aplikasi.
+
+### 5. Frontend Antarmuka Pengguna (`app/`)
+Membangun antarmuka interaktif (*User Interface*) berbasis Web Statis (HTML/CSS/JS) agar pengguna akhir dapat menikmati layanan asisten AI ini dengan nyaman.
+- **Fitur Utama**: Desain *Dark Mode*, *glassmorphism*, fitur *drag-and-drop upload* PDF, indikator status unggahan, daftar riwayat obrolan di *sidebar*, dan *rendering Markdown* (berserta referensi klik) pada area jawaban *chatbot*.
