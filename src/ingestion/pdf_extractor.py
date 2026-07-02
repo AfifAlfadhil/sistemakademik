@@ -12,14 +12,14 @@ from PIL import Image
 from pathlib import Path
 
 from .image_preprocessing import preprocess_image_for_ocr, detect_page_type
+from .cleaning import clean_extracted_text
 
-
-def extract_pdf_full_ocr(
+def extract_pdf_full_ocr( 
     pdf_path: str,
-    dpi: int = 300,
+    dpi: int = 400,
     tesseract_lang: str = "ind",
     psm_text: int = 6,
-    psm_table: int = 4,
+    psm_table: int = 11,
     psm_mixed: int = 3,
     preprocessing_config: dict | None = None,
     log_callback = None,
@@ -32,10 +32,10 @@ def extract_pdf_full_ocr(
     
     Args:
         pdf_path: Path ke file PDF
-        dpi: Resolusi render (default 300)
+        dpi: Resolusi render (default 400)
         tesseract_lang: Bahasa Tesseract (default "ind" untuk Indonesia)
         psm_text: PSM mode untuk halaman teks (default 6)
-        psm_table: PSM mode untuk halaman tabel (default 4)
+        psm_table: PSM mode untuk halaman tabel (default 11)
         psm_mixed: PSM mode untuk halaman campuran (default 3)
         preprocessing_config: Override parameter preprocessing OpenCV
     
@@ -80,19 +80,53 @@ def extract_pdf_full_ocr(
         preprocessed = preprocess_image_for_ocr(pil_image, **preprocess_params)
 
         # 5. OCR dengan Tesseract
-        tesseract_config = f"--psm {psm} --oem 3"
+        tesseract_config = (
+            f"--oem 3 " 
+            f"--psm {psm} " 
+            "-c preserve_interword_spaces=1"
+            "-c textord_heavy_nr=1"
+        )
         try:
             ocr_text = pytesseract.image_to_string(
                 preprocessed,
                 lang=tesseract_lang,
                 config=tesseract_config,
             )
+
+            best_text = ocr_text
+            best_psm = psm
+            
+            # fallback untuk teks yang terlalu sedikit
+            if len(ocr_text.strip()) < 100:
+                if page_type == "table":
+                    fallback_psms = [6, 11, 12]
+                else:
+                    fallback_psms = [11]
+                
+                for fallback_psm in fallback_psms:
+                    if fallback_psm == psm:
+                        continue
+                    
+                    fallback_config = ( 
+                    f"--oem 3" 
+                    f"--psm {fallback_psm}"
+                    "-c preserve_interword_spaces=1"
+                )
+
+                candidate = pytesseract.image_to_string(preprocessed, lang=tesseract_lang, config=fallback_config,)
+                if len(candidate.strip()) > len(best_text.strip()):
+                    best_text = candidate
+                    best_psm = fallback_psm
+
+            ocr_text = best_text
+            psm = best_psm
+
         except Exception as e:
             print(f"    ⚠️  OCR error pada {page_label}: {e}")
             ocr_text = ""
 
         # 6. Simpan hasil per halaman
-        text_clean = ocr_text.strip()
+        text_clean = clean_extracted_text(ocr_text)
         char_count = len(text_clean)
 
         pages_result.append({

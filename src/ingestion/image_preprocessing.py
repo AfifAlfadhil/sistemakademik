@@ -17,13 +17,13 @@ from PIL import Image
 
 def preprocess_image_for_ocr(
     pil_image: Image.Image,
-    bilateral_d: int = 9,
-    bilateral_sigma_color: int = 75,
-    bilateral_sigma_space: int = 75,
-    adaptive_block_size: int = 15,
-    adaptive_c: int = 8,
+    bilateral_d: int = 7,
+    bilateral_sigma_color: int = 50,
+    bilateral_sigma_space: int = 50,
+    adaptive_block_size: int = 21,
+    adaptive_c: int = 5,
     deskew_threshold: float = 0.5,
-    border_crop_percent: float = 0.02,
+    border_crop_percent: float = 0.01,
 ) -> Image.Image:
     """
     Preprocessing lengkap untuk gambar halaman PDF sebelum OCR.
@@ -36,7 +36,7 @@ def preprocess_image_for_ocr(
         adaptive_block_size: Block size untuk adaptive threshold (harus ganjil)
         adaptive_c: Konstanta C untuk adaptive threshold
         deskew_threshold: Threshold minimum angle (derajat) untuk koreksi skew
-        border_crop_percent: Persentase border yang di-crop (0.02 = 2%)
+        border_crop_percent: Persentase border yang di-crop (0.01 = 1%)
     
     Returns:
         Gambar hasil preprocessing (PIL Image)
@@ -47,6 +47,18 @@ def preprocess_image_for_ocr(
     # 1. Border removal — crop tepi untuk hilangkan artefak scan
     if border_crop_percent > 0:
         img = _crop_border(img, border_crop_percent)
+
+    # Upscale image - meningkatkan keakuratan OCR
+    page_type = detect_page_type(pil_image)
+    
+    if page_type == "table":
+        scale = 3
+    elif page_type == "mixed":
+        scale = 2.5
+    else:
+        scale = 2
+
+    img = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
 
     # 2. Grayscale conversion
     if len(img.shape) == 3:
@@ -71,13 +83,22 @@ def preprocess_image_for_ocr(
         blockSize=adaptive_block_size,
         C=adaptive_c
     )
+    binary = cv2.medianBlur(binary, 3)  # menghilangkan noise kecil
 
     # 5. Deskew — koreksi kemiringan hasil scan
     binary = _deskew(binary, deskew_threshold)
 
     # 6. Morphological cleaning — tutup gap kecil dalam karakter
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
-    cleaned = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
+    if page_type == "table":
+        cleaned = binary
+
+    elif page_type == "mixed":
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 1))
+        cleaned = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
+
+    else:
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
+        cleaned = cv2.morphologyEx(binary,cv2.MORPH_CLOSE, kernel)
 
     # Convert back to PIL
     return Image.fromarray(cleaned)
@@ -162,9 +183,9 @@ def detect_page_type(pil_image: Image.Image) -> str:
     total_pixels = gray.shape[0] * gray.shape[1]
     line_ratio = (h_count + v_count) / total_pixels
 
-    if line_ratio > 0.005:
+    if line_ratio > 0.008:
         return "table"
-    elif line_ratio > 0.002:
+    elif line_ratio > 0.003:
         return "mixed"
     else:
         return "text"

@@ -1,16 +1,9 @@
-"""
-service.py — Layanan Embedding menggunakan Google Gemini
-
-Mengubah teks chunk menjadi representasi vektor numerik (768 dimensi).
-Menggunakan model `text-embedding-004`.
-"""
-
 import os
 import time
 from google import genai
 
 class EmbeddingService:
-    def __init__(self, model_name: str = "text-embedding-004"):
+    def __init__(self, model_name: str = "gemini-embedding-2"):
         self.model_name = model_name
         self._init_client()
         
@@ -36,12 +29,22 @@ class EmbeddingService:
         """
         if not texts:
             return []
+        
+        if batch_size <=0:
+            raise ValueError("batch_size harus > 0")
+        
+        batch_size = min(batch_size, 100)  # Gemini max batch size
             
         all_embeddings = []
         
         # Proses per batch
-        for i in range(0, len(texts), batch_size):
-            batch_texts = texts[i:i + batch_size]
+        for batch_start in range(0, len(texts), batch_size):
+            batch_texts = texts[batch_start:batch_start + batch_size]
+
+            print(
+                f"🔹 Embedding batch {batch_start // batch_size + 1} "
+                f"({len(batch_texts)} chunks)..."
+            )
             
             # Rate limiting / Backoff sederhana
             max_retries = 3
@@ -62,6 +65,12 @@ class EmbeddingService:
                     
                     # Ekstrak nilai embedding
                     batch_embeddings = [emb.values for emb in response.embeddings]
+
+                    if len(batch_embeddings) != len(batch_texts):
+                        raise RuntimeError(
+                            f"Jumlah embedding ({len(batch_embeddings)}) "
+                            f"tidak sesuai jumlah teks ({len(batch_texts)})"
+                        )
                     all_embeddings.extend(batch_embeddings)
                     break
                     
@@ -78,6 +87,9 @@ class EmbeddingService:
         """
         Embed pertanyaan user untuk pencarian (retrieval).
         """
+        if not query or not query.strip():
+            raise ValueError("Query kosong")
+        
         response = self.client.models.embed_content(
             model=self.model_name,
             contents=query,

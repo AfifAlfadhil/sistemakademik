@@ -225,3 +225,6 @@ chroma_db/
 
 # Data Ekstraksi Ingestion (Generated)
 dev/data/processed/
+
+# Evaluation outputs
+dev/data/eval/

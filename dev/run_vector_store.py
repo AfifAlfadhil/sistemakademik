@@ -8,9 +8,7 @@ untuk keperluan monitoring manual dan evaluasi.
 """
 
 import sys
-import os
 import json
-import glob
 from pathlib import Path
 
 # Tambahkan root directory project ke sys.path
@@ -42,6 +40,7 @@ def main():
     task_type_doc = config.get("embedding", {}).get("task_type_document", "RETRIEVAL_DOCUMENT")
     
     persist_dir = config.get("vector_store", {}).get("persist_directory", "./chroma_db")
+    collection_name = config.get("vector_store", {}).get("collection_name", "academic_docs")
     eval_dir = Path(PROJECT_ROOT / config.get("paths", {}).get("eval_data", "dev/data/eval"))
     
     print("=" * 60)
@@ -52,8 +51,7 @@ def main():
     print("=" * 60)
     
     embedding_service = EmbeddingService(model_name=embed_model_name)
-    vector_store = VectorStore(persist_directory=persist_dir)
-    
+    vector_store = VectorStore(persist_directory=persist_dir, collection_name=collection_name)
     eval_dir.mkdir(parents=True, exist_ok=True)
     
     # Cari file chunks
@@ -78,16 +76,33 @@ def main():
         print(f"   Meng-embed {len(chunks)} chunks...")
         texts = [c["content"] for c in chunks]
         
+        # memvalidasi chunk yang tidak kosong
+        valid_chunks = []
+        texts = []
+
+        for c in chunks:
+            content = c.get("content", "").strip()
+            if not content:
+                continue
+            valid_chunks.append(c)
+            texts.append(content)
+
+        if not valid_chunks:
+            print("   ⚠️ Tidak ada chunk valid untuk di-embed.")
+            continue
+
+        print(f"   Meng-embed {len(valid_chunks)} chunks valid...")
+
         # Generate Embeddings
         embeddings = embedding_service.embed_texts(texts, batch_size=embed_batch_size, task_type=task_type_doc)
         
         # Simpan ke Vector DB
         print("   Menyimpan ke Chroma DB...")
-        vector_store.add_documents(chunks, embeddings)
+        vector_store.add_documents(valid_chunks, embeddings)
         print("   ✅ Berhasil disimpan ke Chroma DB.")
         
         # Kumpulkan sample untuk evaluasi manual
-        for c, emb in zip(chunks, embeddings):
+        for c, emb in zip(valid_chunks, embeddings):
             eval_record = {
                 "chunk_id": c["chunk_id"],
                 "source_file": c["source_file"],
@@ -132,9 +147,15 @@ def main():
     
     # Tampilkan stats akhir
     stats = vector_store.get_stats()
+
+    if stats["total_chunks"] == 0:
+        raise RuntimeError("❌ Vector database kosong.")
+    
     print("\n" + "=" * 60)
     print("🏁 PROSES SELESAI")
-    print(f"   Total Chunks di Chroma DB saat ini: {stats['total_chunks']}")
+    print(f"   Collection   : {stats['collection']}")
+    print(f"   Chroma DB    : {stats['persist_directory']}")
+    print(f"   Total Chunks : {stats['total_chunks']}")
     print("=" * 60)
 
 if __name__ == "__main__":

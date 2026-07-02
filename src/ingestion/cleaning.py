@@ -41,6 +41,7 @@ def clean_extracted_text(text: str) -> str:
     text = re.sub(r'^\s*-\s*\d+\s*-\s*$', '', text, flags=re.MULTILINE)  # page numbers: -1-
     text = re.sub(r'^\s*SALINAN\s*$', '', text, flags=re.MULTILINE)       # watermark
     text = re.sub(r'^\s*ttd\.?\s*$', '', text, flags=re.MULTILINE | re.IGNORECASE)  # "ttd."
+    text = re.sub(r'Salinan sesuai dengan aslinya.*?(?=\n\n|\Z)', '', text, flags=re.DOTALL | re.IGNORECASE)  
 
     # 4b. Clean Table of Contents dot leaders hallucination
     text = _clean_toc_leaders(text)
@@ -66,12 +67,30 @@ def _filter_garbage_text(text: str) -> str:
     """
     cleaned_lines = []
 
+    ui_patterns = [
+        r'No results found',
+        r'Resize table columns',
+        r'DEV AREA'
+        r'Logout',
+        r'Back$',
+        r'Dashboard',
+        r'Blog Post',
+        r'Tagihan',
+        r'Ganti User',
+        r'Hak akses',
+        r'Close$',
+    ]
+
     for line in text.split('\n'):
         stripped = line.strip()
 
         # Skip baris kosong — pertahankan sebagai separator
         if not stripped:
             cleaned_lines.append(line)
+            continue
+
+        # Skip elemen UI
+        if any(re.search(pattern, stripped, re.IGNORECASE) for pattern in ui_patterns):
             continue
 
         # Skip baris terlalu pendek (< 3 karakter non-whitespace)
@@ -86,12 +105,27 @@ def _filter_garbage_text(text: str) -> str:
             # Terlalu banyak karakter aneh → kemungkinan OCR garbage
             continue
 
+        # Simbol Aneh
+        weird_chars = sum(1 for c in stripped if c in "%&@#$^*_=<>~")
+        if weird_chars / len(stripped) > 0.3:
+            continue
+
+        alpha_ratio = sum(c.isalpha() for c in stripped) / len(stripped)
+        if len(stripped) > 30 and alpha_ratio < 0.15:
+            continue
+
         # Deteksi baris dengan terlalu banyak kata 1-2 huruf berurutan
         # Indikator OCR garbage dari stempel/grafis
         words = stripped.split()
         if len(words) > 4:
             short_words = sum(1 for w in words if len(w) <= 2)
             if short_words / len(words) > 0.65:
+                continue
+        # Indikasi OCR rusak dari banyaknya huruf konsonan tanpa vokal
+        letters = [c.lower() for c in stripped if c.isalpha()]
+        if len(letters) > 20:
+            vowels = sum(c in "aieueo" for c in letters)
+            if vowels / len(letters) < 0.2:
                 continue
 
         cleaned_lines.append(line)
@@ -107,6 +141,8 @@ def _clean_toc_leaders(text: str) -> str:
     garbage_chars = set('oWc#nmaA»”rXkTeNlBKG')
     
     for line in text.split('\n'):
+        # Pola BAB I .......... 5
+        line = re.sub(r'\.{3,}\s*(\d{1,3})$', r' \1', line)
         # Cari pola dot leader `..` atau `...`
         match = re.search(r'\.{2,}', line)
         if match:
@@ -126,7 +162,7 @@ def _clean_toc_leaders(text: str) -> str:
                 has_repeating = bool(re.search(r'(.)\1{3,}', suffix))
                 
                 # Jika rasio garbage tinggi ATAU ada karakter berulang
-                if ratio > 0.5 or has_repeating:
+                if ratio > 0.45 or has_repeating:
                     # Ambil angka halaman di paling belakang (jika ada)
                     page_match = re.search(r'(\d{1,3})\s*$', suffix)
                     page_num = f" {page_match.group(1)}" if page_match else ""

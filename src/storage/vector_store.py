@@ -1,10 +1,3 @@
-"""
-vector_store.py — Operasi ChromaDB
-
-Menyimpan embeddings dan chunks ke ChromaDB,
-serta melakukan similarity search.
-"""
-
 import chromadb
 from chromadb.config import Settings
 
@@ -63,6 +56,12 @@ class VectorStore:
             metadatas=metadatas,
             documents=documents
         )
+
+    def clear(self):
+        """Menghapus isi collection"""
+        ids = self.collection.get()["ids"]
+        if ids:
+            self.collection.delete(ids=ids)
         
     def search(self, query_embedding: list[float], top_k: int = 5) -> list[dict]:
         """
@@ -87,10 +86,12 @@ class VectorStore:
             return formatted_results
             
         for i in range(len(results["ids"][0])):
+            distance = results["distances"][0][i]
             formatted_results.append({
                 "chunk_id": results["ids"][0][i],
                 "content": results["documents"][0][i],
-                "score": 1.0 - results["distances"][0][i],  # Konversi Cosine Distance ke Cosine Similarity
+                "distance": distance,
+                "score": 1.0 - distance,  # Konversi Cosine Distance ke Cosine Similarity
                 **results["metadatas"][0][i]  # Merge metadatas langsung ke dict
             })
             
@@ -105,4 +106,10 @@ class VectorStore:
     def get_stats(self) -> dict:
         """Mengambil statistik collection (jumlah chunks)."""
         count = self.collection.count()
-        return {"total_chunks": count}
+
+        return {
+            "collection": self.collection_name,
+            "persist_directory": self.persist_directory,
+            "total_chunks": count,
+            }
+

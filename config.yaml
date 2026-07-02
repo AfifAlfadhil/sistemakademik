@@ -4,19 +4,19 @@ ingestion:
   separators: ["\n\n", "\n", ". ", " ", ""]
 
 ocr:
-  dpi: 300
+  dpi: 400
   tesseract_lang: "ind"
   tesseract_psm_text: 6
-  tesseract_psm_table: 4
+  tesseract_psm_table: 11
   tesseract_psm_mixed: 3
   preprocessing:
-    bilateral_d: 9
-    bilateral_sigma_color: 75
-    bilateral_sigma_space: 75
-    adaptive_block_size: 15
-    adaptive_c: 8
+    bilateral_d: 7
+    bilateral_sigma_color: 50
+    bilateral_sigma_space: 50
+    adaptive_block_size: 21
+    adaptive_c: 5
     deskew_threshold: 0.5
-    border_crop_percent: 0.02
+    border_crop_percent: 0.01
 
 embedding:
   model: "gemini-embedding-2"
@@ -43,3 +43,4 @@ vector_store:
 paths:
   raw_data: "dev/data/raw"
   processed_data: "dev/data/processed"
+  eval_data: "dev/data/eval"

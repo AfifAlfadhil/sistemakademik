@@ -1,9 +1,3 @@
-"""
-chunking.py — Text Splitting menggunakan RecursiveCharacterTextSplitter
-
-Memecah teks panjang menjadi chunks yang optimal untuk embedding dan retrieval.
-"""
-
 import uuid
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 

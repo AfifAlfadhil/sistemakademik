@@ -23,7 +23,6 @@ sys.path.append(str(PROJECT_ROOT))
 import yaml
 
 from src.ingestion.pdf_extractor import extract_pdf_full_ocr
-from src.ingestion.cleaning import clean_extracted_text
 from src.ingestion.chunking import chunk_text
 
 
@@ -75,11 +74,11 @@ def ingest_single_pdf(pdf_path: Path, config: dict) -> dict:
 
     print(f"   ✅ OCR selesai: {len(raw_text)} chars, {page_count} halaman ({ocr_time:.1f}s)")
 
-    # === STEP 2: Text Cleaning ===
-    print(f"\n🧹 Step 2: Text Cleaning...")
-    cleaned_text = clean_extracted_text(raw_text)
-    chars_removed = len(raw_text) - len(cleaned_text)
-    print(f"   ✅ Cleaning selesai: {len(cleaned_text)} chars (removed {chars_removed} chars)")
+    # === STEP 2: Text Validation ===
+    print(f"\n🧹 Step 2: Text Validation...")
+    cleaned_text = raw_text
+    chars_removed = 0
+    print(f"   ✅ Text siap diproses ({len(cleaned_text)} chars)")
 
     # === STEP 3: Save Parsed Markdown ===
     print(f"\n💾 Step 3: Save Parsed Markdown...")
