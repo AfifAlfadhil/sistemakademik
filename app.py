@@ -206,25 +206,89 @@ async def get_session_messages(session_id: str):
 
 @app.get("/api/documents")
 def get_documents():
-    """Mengembalikan daftar dokumen dari database (ChromaDB)."""
+    """Mengembalikan daftar dokumen dari database (ChromaDB) dan folder uploads."""
     db_docs = chatbot.retriever.vector_store.get_all_documents()
-    uploads_dir = PROJECT_ROOT / "data" / "uploads"
+    db_files = {doc["file"]: doc for doc in db_docs}
     
-    # Update date with local file creation time if the file exists
-    for doc in db_docs:
-        file_path = uploads_dir / doc["file"]
-        if file_path.exists():
-            mtime = file_path.stat().st_mtime
-            doc["date"] = time.strftime("%d %b %Y", time.localtime(mtime))
+    uploads_dir = PROJECT_ROOT / "data" / "uploads"
+    uploads_dir.mkdir(parents=True, exist_ok=True)
+    
+    all_documents = []
+    for file_path in uploads_dir.glob("*.pdf"):
+        filename = file_path.name
+        mtime = file_path.stat().st_mtime
+        date_str = time.strftime("%d %b %Y", time.localtime(mtime))
+        
+        if filename in db_files:
+            doc = db_files[filename]
+            doc["date"] = date_str
+            doc["status"] = "Ready"
+            all_documents.append(doc)
+        else:
+            all_documents.append({
+                "title": filename.replace(".pdf", ""),
+                "file": filename,
+                "date": date_str,
+                "status": "Proses"
+            })
             
-    return {"documents": db_docs}
+    return {"documents": all_documents}
 
 
-from fastapi import UploadFile, File
+from fastapi import UploadFile, File, BackgroundTasks
+
+def process_uploaded_pdf_background(pdf_path: Path, filename: str):
+    import uuid
+    from src.ingestion.pdf_extractor import extract_pdf_full_ocr
+    from src.ingestion.chunking import chunk_text
+    from src.config import config
+    
+    try:
+        ocr_config = config.get("ocr", {})
+        preprocessing_config = ocr_config.get("preprocessing", {})
+        chunking_config = config.get("ingestion", {})
+        embed_batch_size = config.get("embedding", {}).get("batch_size", 100)
+        task_type_doc = config.get("embedding", {}).get("task_type_document", "RETRIEVAL_DOCUMENT")
+
+        extraction_result = extract_pdf_full_ocr(
+            pdf_path=str(pdf_path),
+            dpi=ocr_config.get("dpi", 300),
+            tesseract_lang=ocr_config.get("tesseract_lang", "ind"),
+            psm_text=ocr_config.get("tesseract_psm_text", 6),
+            psm_table=ocr_config.get("tesseract_psm_table", 4),
+            psm_mixed=ocr_config.get("tesseract_psm_mixed", 3),
+            preprocessing_config=preprocessing_config,
+        )
+        raw_text = extraction_result["text"]
+        
+        chunks = chunk_text(
+            text=raw_text,
+            source_file=filename,
+            document_id=str(uuid.uuid4()),
+            chunk_size=chunking_config.get("chunk_size", 1000),
+            chunk_overlap=chunking_config.get("chunk_overlap", 150),
+        )
+        valid_chunks = [c for c in chunks if c.get("content", "").strip()]
+        
+        if not valid_chunks:
+            return
+            
+        texts = [c["content"] for c in valid_chunks]
+        embeddings = chatbot.retriever.embedding_service.embed_texts(texts, batch_size=embed_batch_size, task_type=task_type_doc)
+        
+        chatbot.retriever.vector_store.add_documents(valid_chunks, embeddings)
+        print(f"Successfully processed and embedded {filename}")
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        print(f"Error processing {filename}: {e}")
 
 @app.post("/api/upload")
-async def upload_document(file: UploadFile = File(...)):
-    """Mengunggah file PDF baru ke folder data/uploads."""
+async def upload_document(file: UploadFile = File(...), background_tasks: BackgroundTasks = None):
+    """Mengunggah file PDF baru ke folder data/uploads dan mulai pemrosesan."""
+    if not background_tasks:
+        raise HTTPException(status_code=500, detail="Background tasks not available")
+        
     uploads_dir = PROJECT_ROOT / "data" / "uploads"
     uploads_dir.mkdir(parents=True, exist_ok=True)
     
@@ -232,6 +296,8 @@ async def upload_document(file: UploadFile = File(...)):
     content = await file.read()
     with open(file_path, "wb") as f:
         f.write(content)
+        
+    background_tasks.add_task(process_uploaded_pdf_background, file_path, file.filename)
         
     return {"message": "Berhasil mengunggah dokumen", "filename": file.filename}
 
