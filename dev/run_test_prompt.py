@@ -1,6 +1,5 @@
 import sys
 from pathlib import Path
-import yaml
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.append(str(PROJECT_ROOT))
@@ -12,10 +11,7 @@ from src.embedding.service import EmbeddingService
 from src.storage.vector_store import VectorStore
 from src.retrieval.service import RetrievalService
 from src.llm.prompt import PromptBuilder
-
-# Load config
-with open(PROJECT_ROOT / "config.yaml", "r") as f:
-    config = yaml.safe_load(f)
+from src.config import config
 
 # Inisialisasi service dari config
 embedder = EmbeddingService(

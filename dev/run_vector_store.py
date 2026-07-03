@@ -18,21 +18,11 @@ sys.path.append(str(PROJECT_ROOT))
 from dotenv import load_dotenv
 load_dotenv(PROJECT_ROOT / ".env")
 
-import yaml
 from src.embedding.service import EmbeddingService
 from src.storage.vector_store import VectorStore
-
-def load_config() -> dict:
-    """Load konfigurasi dari config.yaml."""
-    config_path = PROJECT_ROOT / "config.yaml"
-    if not config_path.exists():
-        print("⚠️  config.yaml tidak ditemukan, menggunakan default")
-        return {}
-    with open(config_path, "r") as f:
-        return yaml.safe_load(f)
+from src.config import config
 
 def main():
-    config = load_config()
     
     # Inisialisasi Services
     embed_model_name = config.get("embedding", {}).get("model", "text-embedding-004")

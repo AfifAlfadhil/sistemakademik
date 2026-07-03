@@ -1,15 +1,19 @@
 import uuid
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-
+from src.config import config
 
 def chunk_text(
     text: str,
     source_file: str,
     document_id: str,
-    chunk_size: int = 1000,
-    chunk_overlap: int = 150,
+    chunk_size: int = None,
+    chunk_overlap: int = None,
     separators: list[str] | None = None,
 ) -> list[dict]:
+    ingestion_config = config.get("ingestion", {})
+    chunk_size = chunk_size or ingestion_config.get("chunk_size", 1000)
+    chunk_overlap = chunk_overlap or ingestion_config.get("chunk_overlap", 150)
+    separators = separators or ingestion_config.get("separators", ["\n\n", "\n", ". ", " ", ""])
     """
     Pecah teks menjadi chunks menggunakan RecursiveCharacterTextSplitter.
     

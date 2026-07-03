@@ -121,12 +121,6 @@ def _filter_garbage_text(text: str) -> str:
             short_words = sum(1 for w in words if len(w) <= 2)
             if short_words / len(words) > 0.65:
                 continue
-        # Indikasi OCR rusak dari banyaknya huruf konsonan tanpa vokal
-        letters = [c.lower() for c in stripped if c.isalpha()]
-        if len(letters) > 20:
-            vowels = sum(c in "aieueo" for c in letters)
-            if vowels / len(letters) < 0.2:
-                continue
 
         cleaned_lines.append(line)
 

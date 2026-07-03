@@ -1,11 +1,12 @@
 import chromadb
 from chromadb.config import Settings
+from src.config import config
 
 class VectorStore:
-    def __init__(self, persist_directory: str = "./chroma_db", collection_name: str = "academic_docs"):
+    def __init__(self, persist_directory: str = None, collection_name: str = None):
         """Inisialisasi ChromaDB."""
-        self.persist_directory = persist_directory
-        self.collection_name = collection_name
+        self.persist_directory = persist_directory or config.get("vector_store", {}).get("persist_directory", "./chroma_db")
+        self.collection_name = collection_name or config.get("vector_store", {}).get("collection_name", "academic_docs")
         
         # Inisialisasi client dalam mode persistent
         self.client = chromadb.PersistentClient(path=self.persist_directory)
@@ -112,4 +113,25 @@ class VectorStore:
             "persist_directory": self.persist_directory,
             "total_chunks": count,
             }
+
+    def get_all_documents(self) -> list[dict]:
+        """Mengambil daftar dokumen unik yang ada di collection."""
+        results = self.collection.get(include=["metadatas"])
+        if not results or not results["metadatas"]:
+            return []
+            
+        unique_docs = {}
+        for meta in results["metadatas"]:
+            doc_id = meta.get("document_id")
+            if doc_id and doc_id not in unique_docs:
+                # Kita bisa menggunakan "source_file" jika ada
+                file_name = meta.get("source_file", doc_id)
+                unique_docs[doc_id] = {
+                    "title": file_name.replace(".pdf", ""),
+                    "file": file_name,
+                    "date": "-", # ChromaDB doesn't store file mtime by default unless we add it
+                    "status": "Ready"
+                }
+                
+        return list(unique_docs.values())
 

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Asisten AI Akademik">
+    <title>Sistem Akademik AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body class="light-theme">
+
+    <!-- Login Modal -->
+    <div id="login-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="close-modal" id="close-login"><i class="ph ph-x"></i></button>
+            <h2>Silakan Login</h2>
+            <form id="login-form">
+                <div class="input-group">
+                    <label>Username</label>
+                    <input type="text" id="username" required>
+                </div>
+                <div class="input-group">
+                    <label>Password</label>
+                    <input type="password" id="password" required>
+                </div>
+                <p id="login-error" class="error-msg hidden">Username atau password salah.</p>
+                <button type="submit" class="primary-btn w-100">Login</button>
+            </form>
+        </div>
+    </div>
+    <!-- Rename Modal -->
+    <div id="rename-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="close-modal" id="close-rename"><i class="ph ph-x"></i></button>
+            <h2>Ubah Nama Riwayat</h2>
+            <form id="rename-form">
+                <div class="input-group">
+                    <label>Nama Baru</label>
+                    <input type="text" id="new-session-name" required>
+                </div>
+                <div style="display: flex; gap: 8px; margin-top: 16px;">
+                    <button type="button" class="secondary-btn w-100" id="cancel-rename">Batal</button>
+                    <button type="submit" class="primary-btn w-100">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Confirm Delete Modal -->
+    <div id="delete-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="close-modal" id="close-delete"><i class="ph ph-x"></i></button>
+            <h2>Hapus Riwayat?</h2>
+            <p style="margin-bottom: 16px; color: var(--text-secondary); font-size: 14px;">Apakah Anda yakin ingin menghapus riwayat chat ini secara permanen? Data yang telah dihapus tidak dapat dikembalikan.</p>
+            <div style="display: flex; gap: 8px;">
+                <button type="button" class="secondary-btn w-100" id="cancel-delete">Batal</button>
+                <button type="button" class="primary-btn w-100" id="confirm-delete-btn" style="background-color: #d93838;">Hapus</button>
+            </div>
+        </div>
+    </div>
+    <!-- Docs Explorer Modal -->
+    <div id="docs-modal" class="modal-overlay hidden">
+        <div class="modal-content large">
+            <button class="close-modal" id="close-docs"><i class="ph ph-x"></i></button>
+            <h2>Eksplorasi Dokumen</h2>
+            <div class="docs-search">
+                <i class="ph ph-magnifying-glass"></i>
+                <input type="text" placeholder="Cari dokumen dalam sistem..." id="docs-search-input">
+            </div>
+            <ul class="docs-list" id="docs-list">
+                <!-- Diisi via JS -->
+            </ul>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-header-top">
+                    <div class="logo">
+                        <i class="ph ph-sparkle" style="color: var(--accent-primary);"></i>
+                        <span>Akademik AI</span>
+                    </div>
+                    <button class="icon-btn close-sidebar-btn" id="close-sidebar-btn" title="Tutup Sidebar">
+                        <i class="ph ph-list"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="sidebar-content">
+                <button class="menu-list-btn" id="new-chat-btn">
+                    <i class="ph ph-plus"></i>
+                    <span>Chat Baru</span>
+                </button>
+                <button class="menu-list-btn" id="explore-docs-btn">
+                    <i class="ph ph-books"></i>
+                    <span>Eksplorasi Dokumen</span>
+                </button>
+
+                <div class="history-section" id="history-section">
+                    <h3>Hari Ini</h3>
+                    <ul class="history-list">
+                    </ul>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <div id="guest-cta" class="guest-cta">
+                    <p>Login untuk menyimpan riwayat.</p>
+                    <button class="primary-btn w-100" id="sidebar-login-btn">Login</button>
+                </div>
+
+                <div id="user-profile" class="user-profile hidden">
+                    <div class="user-profile-info">
+                        <div class="user-avatar">U</div>
+                        <div class="user-details">
+                            <span class="user-name">Mahasiswa</span>
+                            <span class="user-role">Sistem Akademik</span>
+                        </div>
+                    </div>
+                    <button class="icon-btn" id="sidebar-logout-btn" title="Logout">
+                        <i class="ph ph-sign-out"></i>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Chat Area -->
+        <main class="chat-main">
+            <!-- Header for sidebar toggle, chat title, and guest login / logout -->
+            <header class="main-header">
+                <div class="header-left">
+                    <button class="icon-btn hidden" id="open-sidebar-btn" title="Buka Sidebar">
+                        <i class="ph ph-list"></i>
+                    </button>
+                    <h1 class="chat-title" id="chat-title">Chat Baru</h1>
+                </div>
+
+                <div class="header-right">
+                </div>
+            </header>
+
+            <div class="chat-wrapper" id="chat-wrapper">
+                <div class="chat-container" id="chat-container">
+                    <!-- Welcome Screen -->
+                    <div class="welcome-screen" id="welcome-screen">
+                        <div class="welcome-logo"><i class="ph ph-sparkle"></i></div>
+                        <h2>Halo, ada yang bisa saya bantu terkait akademik?</h2>
+                    </div>
+                    <!-- Chat messages will be appended here -->
+                </div>
+            </div>
+
+            <div class="chat-input-wrapper">
+                <form id="chat-form" class="chat-input-container">
+                    <textarea id="chat-input" placeholder="Tanyakan pada Akademik AI..." rows="1"></textarea>
+                    <button type="submit" class="send-btn" id="send-btn" disabled>
+                        <i class="ph-bold ph-arrow-up"></i>
+                    </button>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+
+</html>

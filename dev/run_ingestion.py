@@ -20,23 +20,12 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.append(str(PROJECT_ROOT))
 
-import yaml
-
+from src.config import config
 from src.ingestion.pdf_extractor import extract_pdf_full_ocr
 from src.ingestion.chunking import chunk_text
 
 
-def load_config() -> dict:
-    """Load konfigurasi dari config.yaml."""
-    config_path = PROJECT_ROOT / "config.yaml"
-    if not config_path.exists():
-        print("⚠️  config.yaml tidak ditemukan, menggunakan default")
-        return {}
-    with open(config_path, "r") as f:
-        return yaml.safe_load(f)
-
-
-def ingest_single_pdf(pdf_path: Path, config: dict) -> dict:
+def ingest_single_pdf(pdf_path: Path) -> dict:
     """
     Jalankan pipeline ingestion untuk satu file PDF.
     
@@ -136,7 +125,6 @@ def ingest_single_pdf(pdf_path: Path, config: dict) -> dict:
 
 def main():
     """Entry point CLI."""
-    config = load_config()
 
     # Tentukan file yang akan diproses
     if len(sys.argv) > 1:
@@ -174,7 +162,7 @@ def main():
 
     for pdf_file in pdf_files:
         try:
-            summary = ingest_single_pdf(pdf_file, config)
+            summary = ingest_single_pdf(pdf_file)
             all_summaries.append(summary)
         except Exception as e:
             print(f"\n❌ Error processing {pdf_file.name}: {e}")

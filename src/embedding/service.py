@@ -1,10 +1,11 @@
 import os
 import time
 from google import genai
+from src.config import config
 
 class EmbeddingService:
-    def __init__(self, model_name: str = "gemini-embedding-2"):
-        self.model_name = model_name
+    def __init__(self, model_name: str = None):
+        self.model_name = model_name or config.get("embedding", {}).get("model", "gemini-embedding-2")
         self._init_client()
         
     def _init_client(self):

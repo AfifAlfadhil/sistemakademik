@@ -1,6 +1,6 @@
 from src.embedding.service import EmbeddingService
 from src.storage.vector_store import VectorStore
-
+from src.config import config
 
 class RetrievalService:
     def __init__(
@@ -15,9 +15,11 @@ class RetrievalService:
     def retrieve(
         self,
         query: str,
-        top_k: int = 5,
-        min_score: float = 0.5,
+        top_k: int = None,
+        min_score: float = None,
     ) -> list[dict]:
+        top_k = top_k or config.get("retrieval", {}).get("top_k", 5)
+        min_score = min_score or config.get("retrieval", {}).get("min_score", 0.4)
         """
         Melakukan retrieval berdasarkan query pengguna.
 
@@ -40,13 +42,6 @@ class RetrievalService:
             query_embedding=query_embedding,
             top_k=top_k,
         )
-        threshold = 0.6
-
-        filtered_results = [
-            r for r in results if r["score"] >= threshold
-        ]
-
-        return filtered_results
 
         # Filter berdasarkan similarity score
         return [

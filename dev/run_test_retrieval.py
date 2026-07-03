@@ -6,7 +6,6 @@ Script untuk menguji Retrieval pada ChromaDB.
 
 from pathlib import Path
 import sys
-import yaml
 from dotenv import load_dotenv
 
 
@@ -17,12 +16,10 @@ load_dotenv(PROJECT_ROOT / ".env")
 from src.embedding.service import EmbeddingService
 from src.storage.vector_store import VectorStore
 from src.retrieval.service import RetrievalService
+from src.config import config
 
 
 def main():
-    with open(PROJECT_ROOT / "config.yaml", "r") as f:
-        config = yaml.safe_load(f)
-
     embedding_service = EmbeddingService(
         model_name=config["embedding"]["model"]
     )

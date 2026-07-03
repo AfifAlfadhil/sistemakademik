@@ -4,19 +4,19 @@ ingestion:
   separators: ["\n\n", "\n", ". ", " ", ""]
 
 ocr:
-  dpi: 400
+  dpi: 300
   tesseract_lang: "ind"
   tesseract_psm_text: 6
-  tesseract_psm_table: 11
+  tesseract_psm_table: 6
   tesseract_psm_mixed: 3
   preprocessing:
-    bilateral_d: 7
-    bilateral_sigma_color: 50
-    bilateral_sigma_space: 50
-    adaptive_block_size: 21
-    adaptive_c: 5
+    bilateral_d: 9
+    bilateral_sigma_color: 75
+    bilateral_sigma_space: 75
+    adaptive_block_size: 15
+    adaptive_c: 8
     deskew_threshold: 0.5
-    border_crop_percent: 0.01
+    border_crop_percent: 0.02
 
 embedding:
   model: "gemini-embedding-2"
@@ -25,22 +25,23 @@ embedding:
   task_type_document: "RETRIEVAL_DOCUMENT"
   task_type_query: "RETRIEVAL_QUERY"
 
-# retrieval:
-#   top_k: 5
+retrieval:
+  top_k: 15
+  min_score: 0.4
 
 vector_store:
   collection_name: "academic_docs"
   persist_directory: "./chroma_db"
 
-# llm:
-#   model: "gemini-2.5-flash"
-#   temperature: 0.2
-#   max_tokens: 2048
+llm:
+  model: "gemini-2.5-flash"
+  temperature: 0.2
+  max_tokens: 4096
 
-# chat:
-#   history_window: 6
+chat:
+  history_window: 6
 
 paths:
-  raw_data: "dev/data/raw"
+  raw_data: "data/uploads"
   processed_data: "dev/data/processed"
   eval_data: "dev/data/eval"
