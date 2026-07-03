@@ -40,6 +40,13 @@ class RetrievalService:
             query_embedding=query_embedding,
             top_k=top_k,
         )
+        threshold = 0.6
+
+        filtered_results = [
+            r for r in results if r["score"] >= threshold
+        ]
+
+        return filtered_results
 
         # Filter berdasarkan similarity score
         return [

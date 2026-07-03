@@ -27,6 +27,9 @@ class AcademicChatbot:
             top_k=5,
         )
 
+        if not contexts:
+            return "Maaf, informasi tersebut tidak ditemukan pada dokumen yang tersedia."
+
         prompt = PromptBuilder.build(
             query=query,
             contexts=contexts,
