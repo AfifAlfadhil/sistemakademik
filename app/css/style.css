@@ -160,6 +160,10 @@ button {
     margin-bottom: 16px;
 }
 
+.auth-switch-text a:hover {
+    text-decoration: underline;
+}
+
 /* Layout */
 .app-container {
     display: flex;

@@ -24,6 +24,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeLogin = document.getElementById('close-login');
     const loginForm = document.getElementById('login-form');
     const loginError = document.getElementById('login-error');
+    const authTitle = document.getElementById('auth-title');
+    const confirmPasswordGroup = document.getElementById('confirm-password-group');
+    const confirmPasswordInput = document.getElementById('confirm-password');
+    const authSubmitBtn = document.getElementById('auth-submit-btn');
+    const authSwitchPrompt = document.getElementById('auth-switch-prompt');
+    const authSwitchLink = document.getElementById('auth-switch-link');
 
     // Docs Explorer Elements
     const exploreDocsBtn = document.getElementById('explore-docs-btn');
@@ -47,9 +53,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- State Management ---
     let currentRole = localStorage.getItem('userRole') || 'guest';
+    let currentUsername = localStorage.getItem('username') || '';
     let currentSessionId = localStorage.getItem('currentSessionId') || null;
+    let authMode = 'login'; // 'login' atau 'register'
+
+    function getAuthHeaders() {
+        const headers = {};
+        if (currentUsername) {
+            headers['X-User-Username'] = currentUsername;
+        }
+        return headers;
+    }
+
+    function setAuthMode(mode) {
+        authMode = mode;
+        loginError.classList.add('hidden');
+        loginError.textContent = '';
+        loginError.style.color = '#E53E3E'; // Red color for errors
+        
+        if (mode === 'login') {
+            authTitle.textContent = 'Silakan Login';
+            confirmPasswordGroup.classList.add('hidden');
+            confirmPasswordInput.removeAttribute('required');
+            authSubmitBtn.textContent = 'Login';
+            authSwitchPrompt.textContent = 'Belum punya akun?';
+            authSwitchLink.textContent = 'Daftar';
+        } else {
+            authTitle.textContent = 'Daftar Akun Baru';
+            confirmPasswordGroup.classList.remove('hidden');
+            confirmPasswordInput.setAttribute('required', 'true');
+            authSubmitBtn.textContent = 'Daftar';
+            authSwitchPrompt.textContent = 'Sudah punya akun?';
+            authSwitchLink.textContent = 'Login';
+        }
+    }
 
     function checkAuthState() {
+        currentUsername = localStorage.getItem('username') || '';
         if (currentRole === 'admin') {
             window.location.href = 'admin.html';
             return;
@@ -58,6 +98,17 @@ document.addEventListener('DOMContentLoaded', () => {
             historySection.classList.remove('hidden');
             guestCta.classList.add('hidden');
             userProfile.classList.remove('hidden');
+            
+            // Set dynamic username
+            const nameEl = document.querySelector('#user-profile .user-name');
+            if (nameEl) {
+                nameEl.textContent = currentUsername || 'Mahasiswa';
+            }
+            // Set dynamic avatar letter
+            const avatarEl = document.querySelector('#user-profile .user-avatar');
+            if (avatarEl && currentUsername) {
+                avatarEl.textContent = currentUsername.charAt(0).toUpperCase();
+            }
             
             // Coba memuat history, dan jika ada session_id tersimpan, load session tersebut
             loadHistorySidebar().then(() => {
@@ -83,6 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Auth Logic ---
     sidebarLoginBtn.addEventListener('click', () => {
+        setAuthMode('login');
         loginModal.classList.remove('hidden');
         setTimeout(() => document.getElementById('username').focus(), 100);
     });
@@ -91,29 +143,97 @@ document.addEventListener('DOMContentLoaded', () => {
         loginModal.classList.add('hidden');
     });
 
-    loginForm.addEventListener('submit', (e) => {
+    authSwitchLink.addEventListener('click', (e) => {
         e.preventDefault();
-        const user = document.getElementById('username').value;
-        const pass = document.getElementById('password').value;
+        setAuthMode(authMode === 'login' ? 'register' : 'login');
+    });
 
-        if (user === 'admin' && pass === 'admin123') {
-            localStorage.setItem('userRole', 'admin');
-            window.location.href = 'admin.html';
-        } else if (user === 'user' && pass === 'user123') {
-            localStorage.setItem('userRole', 'user');
-            currentRole = 'user';
-            loginModal.classList.add('hidden');
-            loginError.classList.add('hidden');
-            loginForm.reset();
-            checkAuthState();
-            resetChat();
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value;
+
+        loginError.classList.add('hidden');
+        loginError.textContent = '';
+        loginError.style.color = '#E53E3E';
+
+        if (authMode === 'register') {
+            const confirmPassword = confirmPasswordInput.value;
+            if (password !== confirmPassword) {
+                loginError.textContent = 'Konfirmasi password tidak cocok.';
+                loginError.classList.remove('hidden');
+                return;
+            }
+            if (password.length < 6) {
+                loginError.textContent = 'Password minimal 6 karakter.';
+                loginError.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await res.json();
+                if (res.ok) {
+                    loginError.style.color = '#10B981'; // Green for success
+                    loginError.textContent = 'Registrasi berhasil! Silakan login.';
+                    loginError.classList.remove('hidden');
+                    document.getElementById('password').value = '';
+                    confirmPasswordInput.value = '';
+                    setTimeout(() => {
+                        setAuthMode('login');
+                        document.getElementById('password').focus();
+                    }, 1500);
+                } else {
+                    loginError.textContent = data.detail || 'Registrasi gagal.';
+                    loginError.classList.remove('hidden');
+                }
+            } catch (err) {
+                console.error(err);
+                loginError.textContent = 'Terjadi kesalahan koneksi server.';
+                loginError.classList.remove('hidden');
+            }
         } else {
-            loginError.classList.remove('hidden');
+            // Login Mode
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await res.json();
+                if (res.ok) {
+                    localStorage.setItem('userRole', data.role);
+                    localStorage.setItem('username', data.username);
+                    currentRole = data.role;
+                    loginModal.classList.add('hidden');
+                    loginForm.reset();
+                    checkAuthState();
+                    resetChat();
+                    
+                    if (data.role === 'admin') {
+                        window.location.href = 'admin.html';
+                    }
+                } else {
+                    loginError.textContent = data.detail || 'Username atau password salah.';
+                    loginError.classList.remove('hidden');
+                }
+            } catch (err) {
+                console.error(err);
+                loginError.textContent = 'Terjadi kesalahan koneksi server.';
+                loginError.classList.remove('hidden');
+            }
         }
     });
 
     sidebarLogoutBtn.addEventListener('click', () => {
         localStorage.removeItem('userRole');
+        localStorage.removeItem('username');
         currentRole = 'guest';
         checkAuthState();
         resetChat();
@@ -138,7 +258,10 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const res = await fetch(`/api/history/${activeRenameId}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        ...getAuthHeaders()
+                    },
                     body: JSON.stringify({ title: newTitle })
                 });
                 if (res.ok) {
@@ -169,7 +292,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (activeDeleteId) {
             try {
                 const res = await fetch(`/api/history/${activeDeleteId}`, {
-                    method: 'DELETE'
+                    method: 'DELETE',
+                    headers: getAuthHeaders()
                 });
                 if (res.ok) {
                     if (currentSessionId === activeDeleteId) {
@@ -321,7 +445,10 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch('/api/chat', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    ...getAuthHeaders()
+                },
                 body: JSON.stringify({ message: text, session_id: currentSessionId })
             });
             
@@ -425,7 +552,9 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadHistorySidebar() {
         if (currentRole === 'guest') return;
         try {
-            const res = await fetch('/api/history');
+            const res = await fetch('/api/history', {
+                headers: getAuthHeaders()
+            });
             if (!res.ok) return;
             const data = await res.json();
             const historyList = document.querySelector('.history-list');
@@ -487,7 +616,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     async function loadSession(sessionId, title) {
         try {
-            const res = await fetch(`/api/history/${sessionId}`);
+            const res = await fetch(`/api/history/${sessionId}`, {
+                headers: getAuthHeaders()
+            });
             if (!res.ok) throw new Error('Failed to load session');
             const data = await res.json();
             

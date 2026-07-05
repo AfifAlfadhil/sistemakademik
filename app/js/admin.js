@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('admin-logout-btn').addEventListener('click', () => {
         localStorage.removeItem('userRole');
+        localStorage.removeItem('username');
         window.location.href = 'index.html';
     });
 
@@ -16,6 +17,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const progressFill = document.getElementById('progress-fill');
     const uploadStatusText = document.getElementById('upload-status-text');
     const documentTableBody = document.getElementById('document-table-body');
+    const terminalMonitor = document.getElementById('terminal-monitor');
+    const terminalFilename = document.getElementById('terminal-filename');
+    const terminalLogsContent = document.getElementById('terminal-logs-content');
 
     let documents = [];
 
@@ -85,6 +89,67 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    let logInterval = null;
+
+    function startLogPolling(filename) {
+        if (logInterval) clearInterval(logInterval);
+        
+        terminalMonitor.classList.remove('hidden');
+        terminalFilename.textContent = filename;
+        terminalLogsContent.innerHTML = '<div style="color: #6B7280;">Menghubungkan ke log stream...</div>';
+        
+        logInterval = setInterval(async () => {
+            try {
+                const res = await fetch(`/api/upload/logs/${encodeURIComponent(filename)}?t=${Date.now()}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    
+                    let formattedLogs = '';
+                    let completed = false;
+                    
+                    data.logs.forEach(line => {
+                        let colorStyle = '';
+                        if (line.includes('SUCCESS:')) {
+                            colorStyle = 'color: #10B981; font-weight: 600;'; // Green
+                            completed = true;
+                        } else if (line.includes('CRITICAL ERROR') || line.includes('ERROR:')) {
+                            colorStyle = 'color: #EF4444; font-weight: 600;'; // Red
+                            completed = true;
+                        } else if (line.includes('Peringatan:')) {
+                            colorStyle = 'color: #F59E0B;'; // Amber
+                        } else if (line.includes('Memulai') || line.includes('Sukses membuat')) {
+                            colorStyle = 'color: #38BDF8;'; // Light Blue
+                        }
+                        
+                        formattedLogs += `<div style="margin-bottom: 4px; ${colorStyle}">${escapeHTML(line)}</div>`;
+                    });
+                    
+                    terminalLogsContent.innerHTML = formattedLogs;
+                    
+                    // Auto scroll to bottom
+                    terminalMonitor.scrollTop = terminalMonitor.scrollHeight;
+                    
+                    if (completed) {
+                        clearInterval(logInterval);
+                        logInterval = null;
+                        
+                        await loadDocuments();
+                        
+                        // Close logs panel after 5 seconds
+                        setTimeout(() => {
+                            terminalMonitor.classList.add('hidden');
+                            progressCompact.classList.add('hidden');
+                            dragDropArea.classList.remove('hidden');
+                            fileInput.value = '';
+                        }, 5000);
+                    }
+                }
+            } catch (err) {
+                console.error('Error fetching logs:', err);
+            }
+        }, 1000);
+    }
+
     async function handleFileUpload(file) {
         if (file.type !== 'application/pdf') {
             alert('Mohon unggah file PDF.');
@@ -110,16 +175,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error('Gagal mengunggah file.');
             }
             
+            const data = await res.json();
             progressFill.style.width = '100%';
-            uploadStatusText.textContent = `Selesai!`;
+            uploadStatusText.textContent = `Mengunggah Selesai! Memulai Pemrosesan...`;
             
             await loadDocuments();
             
-            setTimeout(() => {
-                progressCompact.classList.add('hidden');
-                dragDropArea.classList.remove('hidden');
-                fileInput.value = '';
-            }, 800);
+            // Mulai tampilkan logs
+            startLogPolling(data.filename || file.name);
+            
         } catch (e) {
             alert('Error: ' + e.message);
             progressCompact.classList.add('hidden');

@@ -26,8 +26,8 @@ embedding:
   task_type_query: "RETRIEVAL_QUERY"
 
 retrieval:
-  top_k: 15
-  min_score: 0.4
+  top_k: 5
+  min_score: 0.6
 
 vector_store:
   collection_name: "academic_docs"

@@ -16,22 +16,30 @@
 
 <body class="light-theme">
 
-    <!-- Login Modal -->
+    <!-- Auth Modal (Login / Register) -->
     <div id="login-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <button class="close-modal" id="close-login"><i class="ph ph-x"></i></button>
-            <h2>Silakan Login</h2>
+            <h2 id="auth-title">Silakan Login</h2>
             <form id="login-form">
                 <div class="input-group">
                     <label>Username</label>
-                    <input type="text" id="username" required>
+                    <input type="text" id="username" required autocomplete="username">
                 </div>
                 <div class="input-group">
                     <label>Password</label>
-                    <input type="password" id="password" required>
+                    <input type="password" id="password" required autocomplete="current-password">
+                </div>
+                <div class="input-group hidden" id="confirm-password-group">
+                    <label>Konfirmasi Password</label>
+                    <input type="password" id="confirm-password" autocomplete="new-password">
                 </div>
                 <p id="login-error" class="error-msg hidden">Username atau password salah.</p>
-                <button type="submit" class="primary-btn w-100">Login</button>
+                <button type="submit" class="primary-btn w-100" id="auth-submit-btn">Login</button>
+                <p class="auth-switch-text" style="margin-top: 16px; font-size: 13px; text-align: center; color: var(--text-secondary);">
+                    <span id="auth-switch-prompt">Belum punya akun?</span>
+                    <a href="#" id="auth-switch-link" style="color: var(--accent-primary); font-weight: 500; text-decoration: none;">Daftar</a>
+                </p>
             </form>
         </div>
     </div>

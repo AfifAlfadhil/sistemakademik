@@ -192,6 +192,17 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Terminal Log Monitor -->
+                    <div id="terminal-monitor" class="hidden" style="margin-top: 24px; background: #181817; color: #38BDF8; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; padding: 16px; border-radius: 12px; font-size: 12px; height: 220px; overflow-y: auto; line-height: 1.6; border: 1px solid var(--border-color); box-shadow: inset 0 2px 8px rgba(0,0,0,0.8);">
+                        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.07); padding-bottom: 8px; margin-bottom: 8px; color: var(--text-muted); font-family: var(--font-family); font-weight: 500; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase;">
+                            <span style="display: flex; align-items: center; gap: 6px;"><i class="ph-bold ph-terminal" style="font-size: 13px;"></i> Log Pemrosesan Dokumen</span>
+                            <span id="terminal-filename" style="color: var(--accent-primary);">dokumen.pdf</span>
+                        </div>
+                        <div id="terminal-logs-content" style="white-space: pre-wrap; font-size: 11px;">
+                            <!-- Logs will be appended here -->
+                        </div>
+                    </div>
                 </div>
 
                 <div class="admin-card">
