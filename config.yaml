@@ -31,7 +31,7 @@ retrieval:
 
 vector_store:
   collection_name: "academic_docs"
-  persist_directory: "./chroma_db"
+  persist_directory: "data/chroma_db"
 
 llm:
   model: "gemini-2.5-flash"
