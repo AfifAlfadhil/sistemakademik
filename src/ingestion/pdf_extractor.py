@@ -24,14 +24,31 @@ if not shutil.which("tesseract"):
                 pytesseract.pytesseract.tesseract_cmd = path
                 break
 
-# Pastikan TESSDATA_PREFIX mengarah ke folder lokal jika dideploy di Railway
-if "TESSDATA_PREFIX" not in os.environ:
+# Pastikan folder tessdata lokal ada, terisi model bahasa, dan TESSDATA_PREFIX terkonfigurasi
+def ensure_tessdata():
     railway_tessdata = Path("/app/data/tessdata")
     local_tessdata = Path(__file__).resolve().parents[2] / "data" / "tessdata"
-    if railway_tessdata.exists():
-        os.environ["TESSDATA_PREFIX"] = str(railway_tessdata)
-    elif local_tessdata.exists():
-        os.environ["TESSDATA_PREFIX"] = str(local_tessdata)
+    
+    tessdata_dir = railway_tessdata if railway_tessdata.parent.exists() else local_tessdata
+    tessdata_dir.mkdir(parents=True, exist_ok=True)
+    
+    os.environ["TESSDATA_PREFIX"] = str(tessdata_dir)
+    
+    import urllib.request
+    for lang in ["eng", "ind"]:
+        file_path = tessdata_dir / f"{lang}.traineddata"
+        if not file_path.exists():
+            print(f"🔧 Downloading {lang}.traineddata to {file_path}...")
+            try:
+                urllib.request.urlretrieve(
+                    f"https://github.com/tesseract-ocr/tessdata_fast/raw/main/{lang}.traineddata",
+                    str(file_path)
+                )
+                print(f"✅ Successfully downloaded {lang}.traineddata")
+            except Exception as e:
+                print(f"❌ Failed to download {lang}.traineddata: {e}")
+
+ensure_tessdata()
 
 from src.config import config
 from .image_preprocessing import preprocess_image_for_ocr, detect_page_type
