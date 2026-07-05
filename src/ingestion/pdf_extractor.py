@@ -8,8 +8,30 @@ dideteksi otomatis untuk memilih PSM yang optimal.
 
 import fitz  # PyMuPDF
 import pytesseract
+import shutil
+import os
 from PIL import Image
 from pathlib import Path
+
+# Inisialisasi konfigurasi path Tesseract untuk environment Railway / Nixpacks
+if not shutil.which("tesseract"):
+    nix_path = Path("/root/.nix-profile/bin/tesseract")
+    if nix_path.exists():
+        pytesseract.pytesseract.tesseract_cmd = str(nix_path)
+    else:
+        for path in ["/usr/bin/tesseract", "/usr/local/bin/tesseract", "/opt/homebrew/bin/tesseract"]:
+            if Path(path).exists():
+                pytesseract.pytesseract.tesseract_cmd = path
+                break
+
+# Pastikan TESSDATA_PREFIX mengarah ke folder lokal jika dideploy di Railway
+if "TESSDATA_PREFIX" not in os.environ:
+    railway_tessdata = Path("/app/data/tessdata")
+    local_tessdata = Path(__file__).resolve().parents[2] / "data" / "tessdata"
+    if railway_tessdata.exists():
+        os.environ["TESSDATA_PREFIX"] = str(railway_tessdata)
+    elif local_tessdata.exists():
+        os.environ["TESSDATA_PREFIX"] = str(local_tessdata)
 
 from src.config import config
 from .image_preprocessing import preprocess_image_for_ocr, detect_page_type
