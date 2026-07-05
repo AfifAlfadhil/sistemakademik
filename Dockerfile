@@ -21,5 +21,5 @@ COPY . .
 # Expose port yang digunakan oleh uvicorn
 EXPOSE 8000
 
-# Jalankan uvicorn server
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+# Jalankan uvicorn server (menggunakan shell form agar variabel $PORT dari Railway terbaca dengan benar)
+CMD uvicorn app:app --host 0.0.0.0 --port ${PORT:-8000}
