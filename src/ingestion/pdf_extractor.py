@@ -13,16 +13,39 @@ import os
 from PIL import Image
 from pathlib import Path
 
-# Inisialisasi konfigurasi path Tesseract untuk environment Railway / Nixpacks
+# Inisialisasi konfigurasi path Tesseract untuk environment Railway / Nixpacks secara dinamis
 if not shutil.which("tesseract"):
-    nix_path = Path("/root/.nix-profile/bin/tesseract")
-    if nix_path.exists():
-        pytesseract.pytesseract.tesseract_cmd = str(nix_path)
-    else:
-        for path in ["/usr/bin/tesseract", "/usr/local/bin/tesseract", "/opt/homebrew/bin/tesseract"]:
+    found = False
+    
+    # 1. Cari di Nix store (Railway menggunakan Nixpacks)
+    nix_store = Path("/nix/store")
+    if nix_store.exists():
+        try:
+            tesseract_binaries = list(nix_store.glob("*-tesseract-*/bin/tesseract"))
+            if tesseract_binaries:
+                pytesseract.pytesseract.tesseract_cmd = str(tesseract_binaries[0])
+                print(f"🔧 Pytesseract: Menemukan dan menggunakan binary dari Nix Store: {tesseract_binaries[0]}")
+                found = True
+        except Exception as e:
+            print(f"⚠️ Gagal memindai Nix Store: {e}")
+            
+    # 2. Cari di jalur standard alternatif jika belum ditemukan
+    if not found:
+        alt_paths = [
+            "/root/.nix-profile/bin/tesseract", 
+            "/usr/bin/tesseract", 
+            "/usr/local/bin/tesseract", 
+            "/opt/homebrew/bin/tesseract"
+        ]
+        for path in alt_paths:
             if Path(path).exists():
                 pytesseract.pytesseract.tesseract_cmd = path
+                print(f"🔧 Pytesseract: Menggunakan binary dari system path: {path}")
+                found = True
                 break
+                
+    if not found:
+        print("⚠️ Tesseract binary tidak ditemukan di PATH, Nix Store, maupun jalur alternatif. Pastikan Tesseract sudah terinstal di OS.")
 
 # Pastikan folder tessdata lokal ada, terisi model bahasa, dan TESSDATA_PREFIX terkonfigurasi
 def ensure_tessdata():
