@@ -1,0 +1,20 @@
+# nixpacks.toml untuk konfigurasi deployment Railway
+# File ini memberitahu Nixpacks (builder Railway) untuk mengunduh binary Tesseract
+# serta model bahasa Inggris & Indonesia secara otomatis saat proses deployment.
+
+[providers]
+python = {}
+
+[phases.setup]
+nixPkgs = ["tesseract"]
+
+[phases.build]
+cmds = [
+    "pip install -r requirements.txt",
+    "mkdir -p data/tessdata",
+    "curl -L -o data/tessdata/eng.traineddata https://github.com/tesseract-ocr/tessdata_fast/raw/main/eng.traineddata",
+    "curl -L -o data/tessdata/ind.traineddata https://github.com/tesseract-ocr/tessdata_fast/raw/main/ind.traineddata"
+]
+
+[variables]
+TESSDATA_PREFIX = "/app/data/tessdata/"
