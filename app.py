@@ -514,6 +514,11 @@ def get_upload_logs(filename: str):
     logs = upload_logs.get(filename, ["Menunggu pemrosesan dimulai..."])
     return {"filename": filename, "logs": logs}
 
+# Pastikan folder uploads, db, dan chroma_db ada sebelum mounting untuk mencegah RuntimeError di Railway/Docker
+(PROJECT_ROOT / "data" / "uploads").mkdir(parents=True, exist_ok=True)
+(PROJECT_ROOT / "data" / "db").mkdir(parents=True, exist_ok=True)
+(PROJECT_ROOT / "data" / "chroma_db").mkdir(parents=True, exist_ok=True)
+
 # Mount static files for frontend
 app.mount("/uploads", StaticFiles(directory=str(PROJECT_ROOT / "data" / "uploads")), name="uploads")
 app.mount("/", StaticFiles(directory=str(PROJECT_ROOT / "app"), html=True), name="static")
